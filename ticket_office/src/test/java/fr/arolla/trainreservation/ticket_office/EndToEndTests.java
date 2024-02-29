@@ -58,6 +58,32 @@ class EndToEndTests {
   }
 
   @Test
+  void reserve_two_seats_from_empty_train_v2() throws Exception {
+    final String trainId = "express_2000";
+    var restTemplate = new RestTemplate();
+    restTemplate.postForObject("http://127.0.0.1:8081" + "/reset/" + trainId, null, String.class);
+
+    var request = new BookingRequest(trainId, 2);
+    var mapper = new ObjectMapper();
+    ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();
+    String requestJson = ow.writeValueAsString(request);
+    String url = "http://127.0.0.1:8083/reserve";
+
+    var result = mockMvc.perform(post(url).contentType(APPLICATION_JSON_UTF8)
+        .content(requestJson))
+      .andExpect(status().isOk())
+      .andReturn()
+      .getResponse();
+
+    var json = result.getContentAsString();
+    var objectMapper = new ObjectMapper();
+    var bookingResponse = objectMapper.readValue(json, BookingResponse.class);
+
+    var expected = List.of("1A", "2A");
+    assertEquals(expected, bookingResponse.seats());
+  }
+
+  @Test
   void reserve_two_additional_seats() throws Exception {
     // Reset
     final String trainId = "express_2000";
